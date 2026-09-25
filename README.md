@@ -4,6 +4,32 @@ linking to external resources instead of including content in-line.
 See 'release/text/readme.html' for the end user read-me.
 -->
 
+Armature
+========
+
+An unofficial native AArch64 (ARM64) Linux port based on
+[Blender](https://www.blender.org)'s open source code, with NVIDIA CUDA and OptiX rendering in
+Cycles. Blender doesn't publish Linux AArch64 builds or the precompiled libraries needed to make
+one, so this repository includes a script that builds everything from source in one go:
+
+```sh
+GIT_LFS_SKIP_SMUDGE=1 git clone https://github.com/MatthewHagblom/armature.git
+cd armature
+./build_linux_arm64.sh
+```
+
+Built and tested on an NVIDIA DGX Spark (GB10) running Ubuntu 24.04. See
+[ARM64_LINUX_SUPPORT.md](ARM64_LINUX_SUPPORT.md) for requirements, the tested system, what was
+changed and how the port is maintained.
+
+Armature is not affiliated with or endorsed by the Blender Foundation. Please don't report
+problems with this port to the Blender project. The port is developed with an AI coding
+assistant: every change is built and tested, but not reviewed line by line by a human.
+
+---
+
+*The rest of this file is Blender's own README.*
+
 Blender
 =======
 
