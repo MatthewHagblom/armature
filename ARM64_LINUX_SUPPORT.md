@@ -112,6 +112,7 @@ them from projects.blender.org instead, the same way Blender's `make update` doe
 | `verify` | Checks the binary is AArch64, finds all its libraries and doesn't depend on unexpected system libraries, and that Cycles finds the CUDA and OptiX devices. |
 | `smoke` | Renders the default scene plus an instanced copy of the cube with Cycles on the CPU, CUDA and OptiX, into `build/smoke/`, and fails if a GPU render differs from the CPU render. |
 | `desktop` | Optional, only runs when asked for (`--only desktop`). Adds the build to the desktop's applications menu as `Armature <version>` and opens `.blend` files with it. |
+| `path` | Optional, only runs when asked for (`--only path`). Links `armature` and `blender` in `~/.local/bin` to the build, so both commands start it. Tools that run `blender` from `PATH`, such as the Blender Lab MCP server's command-line tools, then use it. Running the step from a newer release's checkout switches both commands to that build. |
 
 Every step can be re-run on its own, for example `./build_linux_arm64.sh --only blender,verify`.
 Re-runs are incremental. Logs go to `build/logs/`. Run `./build_linux_arm64.sh --help` for all

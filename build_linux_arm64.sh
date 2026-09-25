@@ -56,7 +56,7 @@ APT_PACKAGES=(
 
 ALL_STEPS=(prereqs lfs optix deps blender verify smoke)
 # Only run when asked for with `--only`.
-OPTIONAL_STEPS=(desktop)
+OPTIONAL_STEPS=(desktop path)
 STEPS=("${ALL_STEPS[@]}")
 JOBS=$(nproc)
 WITH_OPTIX=1
@@ -70,8 +70,9 @@ mostly for \`make deps\`. Re-running is incremental.
 
 Options:
   --only STEP[,STEP...]  Run only these steps, in order: ${ALL_STEPS[*]}
-                         Optional step, only run when listed here:
+                         Optional steps, only run when listed here:
                            desktop  Add the build to the desktop's applications menu
+                           path     Add \`armature\` and \`blender\` commands to ~/.local/bin
   --jobs N               Parallel jobs (default: $JOBS)
   --no-optix             Build without OptiX, skipping the NVIDIA OptiX header download
   -h, --help             Show this help
@@ -384,6 +385,35 @@ EOF
   fi
   note "$file"
   note "remove that file to take it off the menu again"
+}
+
+step_path() {
+  log "Adding armature and blender commands"
+  [[ -x $BLENDER_BIN ]] || die "$BLENDER_BIN not found, run the blender step first"
+  # Terminals inside snap packaged applications can have a private `HOME`.
+  local dir=${SNAP_REAL_HOME:-$HOME}/.local/bin name link
+  mkdir -p "$dir"
+  for name in armature blender; do
+    link=$dir/$name
+    # Replace links, so running this from the checkout of a newer release switches the commands
+    # over to it, but leave anything else alone.
+    if [[ -e $link && ! -L $link ]]; then
+      die "$link exists and is not a symbolic link, leaving it alone"
+    fi
+    if [[ -L $link && $(readlink "$link") != "$BLENDER_BIN" ]]; then
+      note "$name pointed to $(readlink "$link")"
+    fi
+    # Blender follows the link to find its `bin/<version>/` resource directory.
+    ln -sfn "$BLENDER_BIN" "$link"
+    note "$link -> $BLENDER_BIN"
+  done
+  if [[ ":$PATH:" != *":$dir:"* ]]; then
+    note "$dir is not on PATH yet. Ubuntu adds it on the next login once it exists,"
+    note "otherwise add it in ~/.profile"
+  elif [[ $(type -P blender) != "$dir/blender" ]]; then
+    note "$(type -P blender) comes first on PATH, run Armature as 'armature' or move $dir first"
+  fi
+  note "remove the links to take the commands away again"
 }
 
 for step in "${STEPS[@]}"; do
