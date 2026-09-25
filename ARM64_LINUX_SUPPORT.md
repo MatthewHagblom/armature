@@ -9,8 +9,19 @@ the application from source in one go.
 Armature is not affiliated with or endorsed by the Blender Foundation, and "Blender" is their
 trademark. Please don't report problems with this port to the Blender project.
 
-The port is developed with an AI coding assistant. Every change is built and tested on the
-system below, but it is not reviewed line by line by a human.
+## How this port is made
+
+**This is an LLM-powered port.** Its code changes, build script and documentation were written
+by Claude, an AI model made by Anthropic, working in Claude Code. The repository owner set the
+goals, tested the builds by hand and decided what to publish, but didn't write the changes or
+review them line by line. Every change is built and tested on the system below before it is
+published, and each commit names the model that made it in its `Patched-and-ported-by:` line.
+
+The investigation behind each fix was done the same way. For example, the model traced invisible
+instanced geometry in the CUDA viewport to a GCC 14 miscompilation, reproduced it in a small test
+program and wrote the workaround; the repository owner found the symptom while testing by hand.
+
+*Ported by Claude Opus 5.5 (Anthropic).*
 
 ## Branches
 

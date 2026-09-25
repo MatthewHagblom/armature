@@ -7,7 +7,7 @@ See 'release/text/readme.html' for the end user read-me.
 Armature
 ========
 
-An unofficial native AArch64 (ARM64) Linux port based on
+An unofficial, LLM-powered native AArch64 (ARM64) Linux port based on
 [Blender](https://www.blender.org)'s open source code, with NVIDIA CUDA and OptiX rendering in
 Cycles. Blender doesn't publish Linux AArch64 builds or the precompiled libraries needed to make
 one, so this repository includes a script that builds everything from source in one go:
@@ -22,9 +22,16 @@ Built and tested on an NVIDIA DGX Spark (GB10) running Ubuntu 24.04. See
 [ARM64_LINUX_SUPPORT.md](ARM64_LINUX_SUPPORT.md) for requirements, the tested system, what was
 changed and how the port is maintained.
 
+**This is an LLM-powered port.** Its code changes, build script and documentation were written
+by Claude, an AI model made by Anthropic, working in Claude Code. The repository owner set the
+goals, tested the builds by hand and decided what to publish, but didn't write the changes or
+review them line by line. Every change is built and tested on that system before it is
+published, and each commit names the model that made it in its `Patched-and-ported-by:` line.
+
 Armature is not affiliated with or endorsed by the Blender Foundation. Please don't report
-problems with this port to the Blender project. The port is developed with an AI coding
-assistant: every change is built and tested, but not reviewed line by line by a human.
+problems with this port to the Blender project.
+
+*Ported by Claude Opus 5.5 (Anthropic).*
 
 ---
 

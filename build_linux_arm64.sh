@@ -9,6 +9,8 @@
 #
 # Everything is built inside this checkout: `build/` (ignored by Git) and `lib/linux_arm64/`.
 # See ARM64_LINUX_SUPPORT.md for details.
+#
+# Written by Claude Opus 5.5, an AI model made by Anthropic, for the Armature port.
 
 set -euo pipefail
 
