@@ -73,6 +73,9 @@ waveletNoiseTile.bin
 /tests/data/
 /lib/macos_x64/
 
+# Linux AArch64 libraries are built locally with `make deps` (there is no precompiled submodule).
+/lib/linux_arm64/
+
 # Build files for VS and VS Code.
 /build/
 /out/

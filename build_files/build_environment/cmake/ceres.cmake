@@ -9,6 +9,10 @@ set(CERES_EXTRA_ARGS
   -DBUILD_TESTING=OFF
   -DBUILD_BENCHMARKS=OFF
   -DUSE_CUDA=OFF
+  # Don't link against BLAS/LAPACK or SuiteSparse found on the build system (Ubuntu often has them
+  # installed), the resulting library would need them at run-time.
+  -DLAPACK=OFF
+  -DSUITESPARSE=OFF
   -DBUILD_EXAMPLES=OFF
   -DBUILD_SHARED_LIBS=ON
 )

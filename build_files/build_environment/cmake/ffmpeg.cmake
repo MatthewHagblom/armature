@@ -145,6 +145,9 @@ elseif(UNIX)
   set(FFMPEG_EXTRA_FLAGS
     ${FFMPEG_EXTRA_FLAGS}
     --x86asmexe=${LIBDIR}/nasm/bin/nasm
+    # Otherwise found automatically when the system has `libdrm` development files (as Ubuntu
+    # does with the packages Blender needs), Blender doesn't link against it.
+    --disable-libdrm
   )
 endif()
 

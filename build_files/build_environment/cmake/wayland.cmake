@@ -20,6 +20,8 @@ ExternalProject_Add(external_wayland
     ${CMAKE_COMMAND} -E env ${WAYLAND_PKG_ENV}
     ${MESON} setup
       --prefix ${LIBDIR}/wayland
+      # Meson defaults to `lib/<triplet>` on Debian based systems, the paths below expect `lib64`.
+      --libdir lib64
       ${MESON_BUILD_TYPE}
       ${WAYLAND_EXTRA_OPTIONS}
       .

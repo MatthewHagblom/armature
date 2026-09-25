@@ -22,6 +22,18 @@
 #   It's possible canceling happens as a patch is being applied or files are being copied.
 #   (steps that aren't part of the compilation process where it's typically safe to cancel).
 
+# Print `MY_MAKEFLAGS` with a jobs argument added. The argument has to go before any ` -- `:
+# make reads everything after it as variable definitions from the command line
+# (e.g. `make deps BUILD_DIR=...`) and silently ignores a jobs argument there.
+function makeflags_with_jobs {
+  local flags=" $MY_MAKEFLAGS "
+  if [[ "$flags" == *" -- "* ]]; then
+    echo "${flags%% -- *} $1 -- ${flags#* -- }"
+  else
+    echo "$MY_MAKEFLAGS $1"
+  fi
+}
+
 if [[ -z "$MY_MAKE_CALL_LEVEL" ]]; then
   export MY_MAKE_CALL_LEVEL=0
   export MY_MAKEFLAGS=$MAKEFLAGS
@@ -55,15 +67,15 @@ if [[ -z "$MY_MAKE_CALL_LEVEL" ]]; then
   fi
   export MY_JOBS_ARG
   # Support user defined `MAKEFLAGS`.
-  export MAKEFLAGS="$MY_MAKEFLAGS -j1"
+  export MAKEFLAGS=$(makeflags_with_jobs -j1)
 else
   export MY_MAKE_CALL_LEVEL=$(( MY_MAKE_CALL_LEVEL + 1 ))
   if (( MY_MAKE_CALL_LEVEL == 1 )); then
     # Important to set jobs to 1, otherwise user defined jobs argument is used.
-    export MAKEFLAGS="$MY_MAKEFLAGS -j1"
+    export MAKEFLAGS=$(makeflags_with_jobs -j1)
   elif (( MY_MAKE_CALL_LEVEL == 2 )); then
     # This is the level used by each sub-project.
-    export MAKEFLAGS="$MY_MAKEFLAGS $MY_JOBS_ARG"
+    export MAKEFLAGS=$(makeflags_with_jobs "$MY_JOBS_ARG")
   fi
   # Else leave `MY_MAKEFLAGS` flags as-is, avoids setting a high number of jobs on recursive
   # calls (which may easily run out of memory). Let the job-server handle the rest.
