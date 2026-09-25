@@ -122,6 +122,7 @@ on Rocky Linux 8.
 | `intern/cycles/util/types_{float3,float4,int3,int4}.h` | Works around a GCC 14 bug on AArch64 that made instanced geometry invisible in Cycles on CUDA (and on the CPU with the BVH2 layout), which includes everything in the viewport. GCC 14.2 at `-O2` drops vector components when these types are copied through their hand-written assignment operator; GCC 13 and Clang don't. The operators are now defaulted, which means the same on every platform. |
 | `.gitignore` | Ignores `lib/linux_arm64/`, where the libraries are built. |
 | `build_linux_arm64.sh`, `ARM64_LINUX_SUPPORT.md`, `README.md` | The build script and this documentation. |
+| `.github/README.md` | Removed. GitHub shows it instead of `README.md`, and upstream's copy describes Blender's GitHub mirror. |
 
 Official Blender releases already handle the rest: Cycles skips CUDA architectures a toolkit
 doesn't support, the library build targets AArch64 (`-march=armv8.2-a+dotprod+fp16+lse`), and
