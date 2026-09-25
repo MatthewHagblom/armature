@@ -51,11 +51,9 @@ struct ccl_try_align(16) float3
     return m128;
   }
 
-  __forceinline float3 &operator=(const float3 &a)
-  {
-    m128 = a.m128;
-    return *this;
-  }
+  /* Defaulted: GCC 14 on AArch64 miscompiles a copy through `m128` after the
+   * components were written, losing the unwritten components. */
+  __forceinline float3 &operator=(const float3 &a) = default;
 #  endif
 
 #  ifndef __KERNEL_GPU__

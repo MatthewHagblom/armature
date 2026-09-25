@@ -32,11 +32,9 @@ struct ccl_try_align(16) int4 {
     return m128;
   }
 
-  __forceinline int4 &operator=(const int4 &a)
-  {
-    m128 = a.m128;
-    return *this;
-  }
+  /* Defaulted: GCC 14 on AArch64 miscompiles a copy through `m128` after the
+   * components were written, losing the unwritten components. */
+  __forceinline int4 &operator=(const int4 &a) = default;
 #  else  /* __KERNEL_SSE__ */
   int x, y, z, w;
 #  endif /* __KERNEL_SSE__ */
