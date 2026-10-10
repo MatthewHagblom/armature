@@ -391,8 +391,10 @@ void AttributeStorage::resize(const AttrDomain domain, const int64_t new_size)
         auto new_data = bke::Attribute::ArrayData::from_uninitialized(type, new_size);
         type.copy_construct_n(data.data, new_data.data, std::min(old_size, new_size));
         if (old_size < new_size) {
-          type.default_construct_n(POINTER_OFFSET(new_data.data, type.size * old_size),
-                                   new_size - old_size);
+          /* Not every caller fills the new values (string attributes are skipped by the
+           * attribute copy utilities), they must not be left uninitialized. */
+          type.value_initialize_n(POINTER_OFFSET(new_data.data, type.size * old_size),
+                                  new_size - old_size);
         }
 
         attr.assign_data(std::move(new_data));

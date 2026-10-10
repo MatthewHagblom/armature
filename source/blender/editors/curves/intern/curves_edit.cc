@@ -190,6 +190,10 @@ void duplicate_points(bke::CurvesGeometry &curves, const IndexMask &mask)
     if (iter.storage_type == bke::AttrStorageType::Single) {
       return;
     }
+    if (iter.data_type == bke::AttrType::String) {
+      /* Not supported by the attribute math utilities, like in #bke::gather_attributes. */
+      return;
+    }
     bke::GSpanAttributeWriter attribute = attributes.lookup_for_write_span(iter.name);
     if (!attribute) {
       return;
