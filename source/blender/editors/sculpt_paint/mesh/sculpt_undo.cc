@@ -1995,6 +1995,10 @@ void push_begin_ex(const Scene & /*scene*/, Object &ob, const char *name)
 {
   UndoStack *ustack = ED_undo_stack_get();
 
+  /* ID's added or removed without an undo step (by a script for e.g.) must be stored before the
+   * mesh changes, as undoing this step loads the previous memfile step. */
+  BKE_undosys_stack_memfile_ensure_updated_for_init(ustack);
+
   /* If possible, we need to tag the object and its geometry data as 'changed in the future' in
    * the previous undo step if it's a memfile one. */
   ED_undosys_stack_memfile_id_changed_tag(ustack, &ob.id);
@@ -2037,6 +2041,10 @@ void push_begin(const Scene &scene, Object &ob, const wmOperator *op)
 void push_enter_sculpt_mode(const Scene & /*scene*/, Object &ob, const wmOperator *op)
 {
   UndoStack *ustack = ED_undo_stack_get();
+
+  /* ID's added or removed without an undo step (by a script for e.g.) must be stored before the
+   * mesh changes, as undoing this step loads the previous memfile step. */
+  BKE_undosys_stack_memfile_ensure_updated_for_init(ustack);
 
   /* If possible, we need to tag the object and its geometry data as 'changed in the future' in
    * the previous undo step if it's a memfile one. */
@@ -2350,6 +2358,10 @@ void geometry_begin(const Scene &scene, Object &ob, const wmOperator *op)
 void geometry_begin_ex(const Scene & /*scene*/, Object &ob, const char *name)
 {
   UndoStack *ustack = ED_undo_stack_get();
+
+  /* ID's added or removed without an undo step (by a script for e.g.) must be stored before the
+   * mesh changes, as undoing this step loads the previous memfile step. */
+  BKE_undosys_stack_memfile_ensure_updated_for_init(ustack);
 
   /* If possible, we need to tag the object and its geometry data as 'changed in the future' in
    * the previous undo step if it's a memfile one. */

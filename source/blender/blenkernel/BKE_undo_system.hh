@@ -67,6 +67,12 @@ struct UndoStack {
   UndoStep *step_init;
 
   /**
+   * The memfile step pushed by #BKE_undosys_stack_memfile_ensure_updated_for_init,
+   * it's skipped once the step after it is pushed.
+   */
+  UndoStep *step_init_memfile_pre;
+
+  /**
    * Keep track of nested group begin/end calls,
    * within which all but the last undo-step is marked for skipping.
    */
@@ -235,6 +241,19 @@ UndoStep *BKE_undosys_step_push_init_with_type(UndoStack *ustack,
                                                const char *name,
                                                const UndoType *ut);
 UndoStep *BKE_undosys_step_push_init(UndoStack *ustack, bContext *C, const char *name);
+/**
+ * Push a memfile undo step when ID's were added, removed or renamed since the last one
+ * (see #Main::is_memfile_undo_written), by a script that didn't push an undo step for e.g.
+ *
+ * For undo systems that change ID data in place and don't reference ID's (sculpt mode),
+ * call before #BKE_undosys_step_push_init_with_type, so the memfile step stores the state
+ * from before the change. Otherwise undoing into the previous memfile step re-uses unchanged
+ * data-blocks that still reference ID's this memfile step doesn't contain, and frees them.
+ *
+ * The memfile step is skipped once the step after it is pushed, it remains a regular step
+ * until then because the active step can't be skipped outside of undo pushes.
+ */
+void BKE_undosys_stack_memfile_ensure_updated_for_init(UndoStack *ustack);
 
 /**
  * \param C: Can be nullptr from some callers if their encoding function doesn't need it

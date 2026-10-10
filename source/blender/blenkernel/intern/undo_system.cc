@@ -246,6 +246,9 @@ static void undosys_step_free_and_unlink(UndoStack *ustack, UndoStep *us)
     ustack->step_active_memfile = nullptr;
   }
 #endif
+  if (ustack->step_init_memfile_pre == us) {
+    ustack->step_init_memfile_pre = nullptr;
+  }
 }
 
 /** \} */
@@ -522,6 +525,26 @@ UndoStep *BKE_undosys_step_push_init(UndoStack *ustack, bContext *C, const char 
   return BKE_undosys_step_push_init_with_type(ustack, C, name, ut);
 }
 
+void BKE_undosys_stack_memfile_ensure_updated_for_init(UndoStack *ustack)
+{
+  UNDO_NESTED_ASSERT(false);
+#ifdef WITH_GLOBAL_UNDO_ENSURE_UPDATED
+  if (G_MAIN->is_memfile_undo_written) {
+    return;
+  }
+  /* An initialized step that was never pushed, the caller replaces it. */
+  if (UndoStep *us = ustack->step_init) {
+    undosys_step_free_and_unlink(ustack, us);
+    ustack->step_init = nullptr;
+  }
+  if (undosys_stack_push_main(ustack, "MemFile Internal (pre)", G_MAIN)) {
+    ustack->step_init_memfile_pre = static_cast<UndoStep *>(ustack->steps.last);
+  }
+#else
+  UNUSED_VARS(ustack);
+#endif
+}
+
 eUndoPushReturn BKE_undosys_step_push_with_type(UndoStack *ustack,
                                                 bContext *C,
                                                 const char *name,
@@ -600,6 +623,15 @@ eUndoPushReturn BKE_undosys_step_push_with_type(UndoStack *ustack,
     ustack->step_active = us;
     BLI_addtail(&ustack->steps, us);
     use_memfile_step = us->use_memfile_step;
+
+    /* Skip the memfile step pushed for this step, like "MemFile Internal (pre)" above,
+     * see #BKE_undosys_stack_memfile_ensure_updated_for_init. */
+    if (ustack->step_init_memfile_pre != nullptr) {
+      if (us->prev == ustack->step_init_memfile_pre) {
+        us->prev->skip = true;
+      }
+      ustack->step_init_memfile_pre = nullptr;
+    }
   }
 
   if (use_memfile_step) {
