@@ -264,6 +264,8 @@ class PaintOperation : public GreasePencilStrokeOperation {
   IndexRange interpolate_stroke_depth(std::optional<int> start_point,
                                       float from_depth,
                                       float to_depth);
+  /** Position of a point at screen coordinates `co` with the placement depth `depth`, if any. */
+  float3 place_at_depth(float2 co, std::optional<float> depth) const;
   void toggle_fill_guides_brush_on(const bContext &C);
   void toggle_fill_guides_brush_off(const bContext &C);
 };
@@ -652,9 +654,8 @@ struct PaintOperationExecutor {
           self.stroke_placement_depths_.as_span().slice(active_window);
       for (const int64_t window_i : active_window.index_range()) {
         final_coords[window_i] = smoothed_coords[window_i] + jitter_slice[window_i];
-        const std::optional<float> depth = stroke_depths[window_i];
-        positions_slice[window_i] = depth ? self.placement_.place(final_coords[window_i], *depth) :
-                                            self.placement_.project(final_coords[window_i]);
+        positions_slice[window_i] = self.place_at_depth(final_coords[window_i],
+                                                        stroke_depths[window_i]);
       }
     }
     else {
@@ -679,12 +680,7 @@ struct PaintOperationExecutor {
       const std::optional<float> depth = self.stroke_placement_depths_.is_empty() ?
                                              std::nullopt :
                                              self.stroke_placement_depths_.last();
-      if (depth) {
-        position = self.placement_.place(coords, *depth);
-      }
-      else {
-        position = self.placement_.project(coords);
-      }
+      position = self.place_at_depth(coords, depth);
     }
     else {
       position = self.placement_.project(coords);
@@ -915,13 +911,7 @@ struct PaintOperationExecutor {
         const Span<std::optional<float>> new_depths =
             self.stroke_placement_depths_.as_mutable_span().take_back(new_points_num);
         for (const int64_t i : new_positions.index_range()) {
-          const std::optional<float> depth = new_depths[i];
-          if (depth) {
-            new_positions[i] = self.placement_.place(coords, *depth);
-          }
-          else {
-            new_positions[i] = self.placement_.project(coords);
-          }
+          new_positions[i] = self.place_at_depth(new_screen_space_coords[i], new_depths[i]);
         }
       }
       else {
@@ -958,11 +948,8 @@ struct PaintOperationExecutor {
         const Span<std::optional<float>> stroke_depths =
             self.stroke_placement_depths_.as_mutable_span().slice(smooth_window);
         for (const int64_t window_i : smooth_window.index_range()) {
-          const std::optional<float> depth = stroke_depths[window_i];
-          curve_positions_slice[window_i] = depth ?
-                                                self.placement_.place(final_coords[window_i],
-                                                                      *depth) :
-                                                self.placement_.project(final_coords[window_i]);
+          curve_positions_slice[window_i] = self.place_at_depth(final_coords[window_i],
+                                                                stroke_depths[window_i]);
         }
       }
       else {
@@ -1019,6 +1006,19 @@ static StrokeSnapMode get_snap_mode(const Scene &scene)
     return StrokeSnapMode::FirstPoint;
   }
   return StrokeSnapMode::AllPoints;
+}
+
+float3 PaintOperation::place_at_depth(const float2 co, const std::optional<float> depth) const
+{
+  /* When all points snap to a surface, place each point on the surface under it. The stored
+   * depths are interpolated between input samples, so they cut through curved surfaces, and
+   * active smoothing moves points away from where their depth was read. */
+  if (placement_.use_project_to_surface() && get_snap_mode(*scene_) == StrokeSnapMode::AllPoints) {
+    if (const std::optional<float> surface_depth = placement_.get_depth(co)) {
+      return placement_.place(co, *surface_depth);
+    }
+  }
+  return depth ? placement_.place(co, *depth) : placement_.project(co);
 }
 
 bool PaintOperation::update_stroke_depth_placement(const InputSample &sample)
@@ -1120,7 +1120,7 @@ IndexRange PaintOperation::interpolate_stroke_depth(std::optional<int> start_poi
   for (const int i : positions.index_range()) {
     /* Update the placement depth for later reprojection (active smoothing). */
     depths[i] = math::interpolate(from_depth, to_depth, float(i) * step_size);
-    positions[i] = placement_.place(final_coords[i], *depths[i]);
+    positions[i] = this->place_at_depth(final_coords[i], depths[i]);
   }
 
   return active_points;

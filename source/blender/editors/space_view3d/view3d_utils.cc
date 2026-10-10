@@ -1794,8 +1794,8 @@ bool ED_view3d_depth_read_cached(const ViewDepths *vd,
   float depth = 1.0f;
   if (margin) {
     int shape[2] = {vd->w, vd->h};
-    int pixel_count = (min_ii(x + margin + 1, shape[1]) - max_ii(x - margin, 0)) *
-                      (min_ii(y + margin + 1, shape[0]) - max_ii(y - margin, 0));
+    int pixel_count = (min_ii(x + margin + 1, shape[0]) - max_ii(x - margin, 0)) *
+                      (min_ii(y + margin + 1, shape[1]) - max_ii(y - margin, 0));
 
     ReadData data;
     data.count = 0;

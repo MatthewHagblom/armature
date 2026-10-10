@@ -329,8 +329,19 @@ std::optional<float3> DrawingPlacement::project_depth(const float2 co) const
 
 std::optional<float> DrawingPlacement::get_depth(float2 co) const
 {
+  if (depth_cache_ == nullptr) {
+    return std::nullopt;
+  }
   float depth;
-  if (depth_cache_ != nullptr && ED_view3d_depth_read_cached(depth_cache_, int2(co), 4, &depth)) {
+  /* On surfaces use the depth under the cursor: the margin finds the nearest depth around it,
+   * which is in front of sloped surfaces. The margin is needed to hit thin strokes, and keeps
+   * placing points on surfaces when the cursor is just outside of them. */
+  if (this->use_project_to_surface() &&
+      ED_view3d_depth_read_cached(depth_cache_, int2(co), 0, &depth))
+  {
+    return depth;
+  }
+  if (ED_view3d_depth_read_cached(depth_cache_, int2(co), 4, &depth)) {
     return depth;
   }
   return std::nullopt;
