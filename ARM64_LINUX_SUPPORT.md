@@ -120,9 +120,10 @@ options, including `--no-optix` to build without OptiX (CUDA rendering still wor
 
 ## Changes from upstream Blender
 
-All changes to upstream files are small. Only one touches Blender's source code, working around a
-compiler bug; the others are build configuration. Most of them adapt Blender's library build to Ubuntu, because upstream builds its Linux libraries
-on Rocky Linux 8.
+All changes to upstream files are small. Most are build configuration, and most of those adapt
+Blender's library build to Ubuntu, because upstream builds its Linux libraries on Rocky Linux 8.
+One source change works around a compiler bug. The branch also carries fixes for bugs in upstream
+Blender that affect every platform, listed under [Bug fixes](#bug-fixes).
 
 | File | Change |
 | --- | --- |
@@ -139,6 +140,17 @@ on Rocky Linux 8.
 Official Blender releases already handle the rest: Cycles skips CUDA architectures a toolkit
 doesn't support, the library build targets AArch64 (`-march=armv8.2-a+dotprod+fp16+lse`), and
 Embree, OpenImageDenoise and ISPC have AArch64 support.
+
+### Bug fixes
+
+These fix bugs in upstream Blender's code. They affect every platform, not only AArch64. Each fix
+is its own commit, so it can be left out once an upstream release includes it.
+
+| Files | Fix |
+| --- | --- |
+| `source/blender/blenkernel/BKE_undo_system.hh`, `source/blender/blenkernel/intern/undo_system.cc`, `source/blender/editors/sculpt_paint/mesh/sculpt_undo.cc`, `source/blender/editors/undo/memfile_undo.cc` | Undoing a Sculpt Mode stroke could crash Blender (use of freed memory) when a script or add-on had added or removed data without an undo step. Blender now stores those changes in a hidden undo step before the stroke, as it already does for Edit Mode, so undoing the stroke also undoes them. |
+| `source/blender/blenkernel/intern/attribute_storage.cc`, `source/blender/editors/curves/intern/curves_edit.cc` | Grease Pencil Join and Duplicate filled the string attributes of new strokes with arbitrary memory. New attribute values now start empty, and Duplicate no longer reaches code marked as unreachable for string attributes. Other edits still drop string attributes, as in upstream Blender. |
+| `source/blender/editors/grease_pencil/intern/grease_pencil_utils.cc`, `source/blender/editors/sculpt_paint/grease_pencil/paint.cc`, `source/blender/editors/space_view3d/view3d_utils.cc` | Grease Pencil strokes drawn with Stroke Placement "Surface" ended up centimeters in front of or behind curved surfaces. Each point now uses the depth under it, and the 4-pixel search for the nearest depth is only a fallback near the edges of surfaces. |
 
 ## Licensing
 
@@ -172,7 +184,8 @@ git cherry-pick -x v<old>..arm64-linux-<old>
 git push --no-verify -u origin arm64-linux-<new>
 ```
 
-A fix goes onto every branch it applies to as its own commit. After publishing a new branch,
+A fix goes onto every branch it applies to as its own commit. When porting a release that already
+includes one of the [bug fixes](#bug-fixes), leave that commit out. After publishing a new branch,
 make it the default branch on GitHub.
 
 Always push with `--no-verify`. Without it, Git LFS's `pre-push` hook tries to upload LFS files
