@@ -786,6 +786,57 @@ static UndoStep *undosys_step_iter_first(UndoStep *us_reference, const eUndoStep
   return (undo_dir == -1) ? us_reference->prev : us_reference->next;
 }
 
+/**
+ * When ID's were added, removed or renamed since the last memfile step without an undo push
+ * (by a script for e.g., see #Main::is_memfile_undo_written), store them in a memfile step
+ * before loading another step. Otherwise loading a memfile step re-uses unchanged data-blocks
+ * that still reference ID's the step doesn't contain, and frees those ID's.
+ *
+ * The step is a regular one, so undo first undoes these changes and redo brings them back.
+ * Like any change, it removes the steps after the active one.
+ *
+ * \return true when a step was pushed.
+ */
+static bool undosys_stack_memfile_ensure_updated_for_load(UndoStack *ustack)
+{
+#ifdef WITH_GLOBAL_UNDO_ENSURE_UPDATED
+  if (G_MAIN->is_memfile_undo_written || ustack->step_active == nullptr) {
+    return false;
+  }
+  /* Don't let 'step_init' cause issues when adding memfile undo step. */
+  UndoStep *step_init = ustack->step_init;
+  ustack->step_init = nullptr;
+  const bool ok = undosys_stack_push_main(ustack, IFACE_("Unrecorded Changes"), G_MAIN);
+  ustack->step_init = step_init;
+  return ok;
+#else
+  UNUSED_VARS(ustack);
+  return false;
+#endif
+}
+
+/**
+ * After loading steps read a memfile step, all current ID's exist in it. When it's the last
+ * memfile step at or before the active step, it's the one the next undo push compares with
+ * (later steps are removed then), so #Main::is_memfile_undo_written applies again. A new Main
+ * starts without it, which would make every later push or undo store a redundant memfile step.
+ */
+static void undosys_stack_memfile_written_update(UndoStack *ustack)
+{
+#ifdef WITH_GLOBAL_UNDO_CORRECT_ORDER
+  for (UndoStep *us = ustack->step_active; us; us = us->prev) {
+    if (us->type == BKE_UNDOSYS_TYPE_MEMFILE) {
+      if (us == ustack->step_active_memfile) {
+        G_MAIN->is_memfile_undo_written = true;
+      }
+      return;
+    }
+  }
+#else
+  UNUSED_VARS(ustack);
+#endif
+}
+
 bool BKE_undosys_step_load_data_ex(UndoStack *ustack,
                                    bContext *C,
                                    UndoStep *us_target,
@@ -810,6 +861,16 @@ bool BKE_undosys_step_load_data_ex(UndoStack *ustack,
   /* This considers we are in undo case if both `us_target` and `us_reference` are the same. */
   const eUndoStepDir undo_dir = BKE_undosys_step_calc_direction(ustack, us_target, us_reference);
   BLI_assert(undo_dir != STEP_INVALID);
+
+  if (us_reference == ustack->step_active && undosys_stack_memfile_ensure_updated_for_load(ustack))
+  {
+    if (undo_dir == STEP_REDO) {
+      /* The new step replaced the steps to redo, including `us_target`. */
+      return false;
+    }
+    us_reference = ustack->step_active;
+  }
+  Main *bmain_before_load = G_MAIN;
 
   /* This will be the active step once the undo process is complete.
    *
@@ -863,6 +924,10 @@ bool BKE_undosys_step_load_data_ex(UndoStack *ustack,
 
     if (is_final) {
       /* Undo/Redo process is finished and successful. */
+      if (G_MAIN != bmain_before_load) {
+        /* A memfile step was read (it replaces Main). */
+        undosys_stack_memfile_written_update(ustack);
+      }
       return true;
     }
   }
@@ -912,6 +977,8 @@ bool BKE_undosys_step_undo_with_data(UndoStack *ustack, bContext *C, UndoStep *u
 bool BKE_undosys_step_undo(UndoStack *ustack, bContext *C)
 {
   if (ustack->step_active != nullptr) {
+    /* Unrecorded changes get their own step first, so this undo only undoes them. */
+    undosys_stack_memfile_ensure_updated_for_load(ustack);
     return BKE_undosys_step_undo_with_data(ustack, C, ustack->step_active->prev);
   }
   return false;

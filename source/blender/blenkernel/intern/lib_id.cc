@@ -206,6 +206,19 @@ static int lib_id_clear_library_data_users_update_cb(LibraryIDLinkCallbackData *
   return IDWALK_RET_NOP;
 }
 
+/**
+ * Adding, removing or renaming `id` means the last memfile undo step doesn't contain all current
+ * ID's anymore (see #Main::is_memfile_undo_written). ID types that memfile undo doesn't store
+ * (screens, workspaces, brushes) don't affect it.
+ */
+static void main_memfile_undo_outdated_tag(Main &bmain, const ID &id)
+{
+  if (BKE_idtype_get_info_from_id(&id)->flags & IDTYPE_FLAGS_NO_MEMFILE_UNDO) {
+    return;
+  }
+  bmain.is_memfile_undo_written = false;
+}
+
 void BKE_lib_id_clear_library_data(Main *bmain, ID *id, const int flags)
 {
   const bool id_in_mainlist = (id->tag & ID_TAG_NO_MAIN) == 0 &&
@@ -233,7 +246,7 @@ void BKE_lib_id_clear_library_data(Main *bmain, ID *id, const int flags)
               IDNewNameResult::Action::UNCHANGED,
               IDNewNameResult::Action::UNCHANGED_COLLISION))
     {
-      bmain->is_memfile_undo_written = false;
+      main_memfile_undo_outdated_tag(*bmain, *id);
     }
   }
 
@@ -1163,7 +1176,7 @@ void BKE_libblock_management_main_add(Main *bmain, void *idv)
   BKE_id_new_name_validate(*bmain, *lb, *id, nullptr, IDNewNameMode::RenameExistingNever, true);
   /* alphabetic insertion: is in new_id */
   id->tag &= ~(ID_TAG_NO_MAIN | ID_TAG_NO_USER_REFCOUNT);
-  bmain->is_memfile_undo_written = false;
+  main_memfile_undo_outdated_tag(*bmain, *id);
   BKE_main_unlock(bmain);
 
   BKE_lib_libblock_session_uid_ensure(id);
@@ -1185,7 +1198,7 @@ void BKE_libblock_management_main_remove(Main *bmain, void *idv)
   BLI_remlink(lb, id);
   BKE_main_namemap_remove_id(*bmain, *id);
   id->tag |= ID_TAG_NO_MAIN;
-  bmain->is_memfile_undo_written = false;
+  main_memfile_undo_outdated_tag(*bmain, *id);
   BKE_main_unlock(bmain);
 }
 
@@ -1424,7 +1437,7 @@ void *BKE_libblock_alloc_in_lib(Main *bmain,
       BKE_main_lock(bmain);
       BLI_addtail(lb, id);
       BKE_id_new_name_validate(*bmain, *lb, *id, name, IDNewNameMode::RenameExistingNever, true);
-      bmain->is_memfile_undo_written = false;
+      main_memfile_undo_outdated_tag(*bmain, *id);
       /* alphabetic insertion: is in new_id */
       BKE_main_unlock(bmain);
 
@@ -2486,7 +2499,7 @@ IDNewNameResult BKE_libblock_rename(Main &bmain,
             IDNewNameResult::Action::UNCHANGED,
             IDNewNameResult::Action::UNCHANGED_COLLISION))
   {
-    bmain.is_memfile_undo_written = false;
+    main_memfile_undo_outdated_tag(bmain, id);
   }
   return result;
 }

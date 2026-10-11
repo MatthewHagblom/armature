@@ -8,6 +8,8 @@
  * Contains management of ID's for freeing & deletion.
  */
 
+#include <algorithm>
+
 #include "MEM_guardedalloc.h"
 
 /* all types are needed here, in order to do memory operations */
@@ -261,6 +263,12 @@ static size_t id_delete(Main *bmain, Set<ID *> &ids_to_delete, const BKEIDDelete
   const int extra_remapping_flags = options.extra_remapping_flags;
   bool has_deleted_library = false;
   bool has_deleted_linked_or_liboverride_id = false;
+  /* Deleting ID types that memfile undo doesn't store (screens, workspaces, brushes) doesn't
+   * outdate the last memfile undo step, see #Main::is_memfile_undo_written. */
+  const bool has_deleted_memfile_undo_id = std::any_of(
+      ids_to_delete.begin(), ids_to_delete.end(), [](const ID *id) {
+        return (BKE_idtype_get_info_from_id(id)->flags & IDTYPE_FLAGS_NO_MEMFILE_UNDO) == 0;
+      });
 
   /* Used by batch tagged deletion, when we call BKE_id_free then, id is no more in Main database,
    * and has already properly unlinked its other IDs usages.
@@ -395,7 +403,9 @@ static size_t id_delete(Main *bmain, Set<ID *> &ids_to_delete, const BKEIDDelete
     BKE_lib_override_library_main_hierarchy_root_ensure(bmain);
   }
 
-  bmain->is_memfile_undo_written = false;
+  if (has_deleted_memfile_undo_id) {
+    bmain->is_memfile_undo_written = false;
+  }
   return size_t(ids_to_delete.size());
 }
 

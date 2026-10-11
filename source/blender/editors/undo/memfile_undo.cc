@@ -139,7 +139,7 @@ static int memfile_undosys_step_id_reused_cb(LibraryIDLinkCallbackData *cb_data)
 }
 
 static void memfile_undosys_step_decode(
-    bContext *C, Main *bmain, UndoStep *us_p, const eUndoStepDir undo_direction, bool is_final)
+    bContext *C, Main *bmain, UndoStep *us_p, const eUndoStepDir undo_direction, bool /*is_final*/)
 {
   BLI_assert(undo_direction != STEP_INVALID);
 
@@ -203,14 +203,6 @@ static void memfile_undosys_step_decode(
 
   /* bmain has been freed. */
   bmain = CTX_data_main(C);
-  if (is_final) {
-    /* All ID's now exist in this memfile step, which becomes the last one with the next undo
-     * push (later steps are removed then). Otherwise the next push from a mode specific undo
-     * system stores a redundant memfile step, see
-     * #BKE_undosys_stack_memfile_ensure_updated_for_init. Not when an undo passes through this
-     * step: the step it ends on may come before it. */
-    bmain->is_memfile_undo_written = true;
-  }
   ED_editors_init_for_undo(bmain);
 
   if (use_old_bmain_data) {
